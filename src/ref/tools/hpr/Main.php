@@ -27,8 +27,40 @@ declare(strict_types=1);
 namespace ref\tools\hpr;
 
 use pocketmine\plugin\PluginBase;
+use ref\tools\hpr\task\DirectoryWatchTask;
+use ref\tools\hpr\utils\FileUpdate;
 
 final class Main extends PluginBase{
+    private ?DirectoryWatchTask $watcher = null;
+
     protected function onEnable() : void{
+        $server = $this->getServer();
+        $this->watcher = new DirectoryWatchTask($server->getPluginPath(), function(array $updatedFiles) use ($server) : void{
+            $logger = $this->getLogger();
+            $logger->info("Plugin file changes was detected...");
+            /**
+             * @var string     $pathname updated file path
+             * @var FileUpdate $update file update type
+             */
+            foreach($updatedFiles as $pathname => $update){
+                switch($update){
+                    case FileUpdate::CREATED():
+                        $logger->debug("+ created: $pathname");
+                        break;
+                    case FileUpdate::MODIFIED():
+                        $logger->debug("= modified: $pathname");
+                        break;
+                    case FileUpdate::DELETED():
+                        $logger->debug("- deleted: $pathname");
+                        break;
+                }
+            }
+            $server->shutdown();
+        });
+        $server->getAsyncPool()->submitTask($this->watcher);
+    }
+
+    protected function onDisable() : void{
+        $this->watcher?->cancelRun();
     }
 }
