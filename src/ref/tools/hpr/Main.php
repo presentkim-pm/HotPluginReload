@@ -24,7 +24,7 @@
 
 declare(strict_types=1);
 
-namespace kim\present\tools\hpr;
+namespace ref\tools\hpr;
 
 use pocketmine\plugin\PluginBase;
 
