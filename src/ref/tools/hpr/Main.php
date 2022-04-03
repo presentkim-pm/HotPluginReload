@@ -31,6 +31,8 @@ use pocketmine\utils\Internet;
 use ref\tools\hpr\task\DirectoryWatchTask;
 use ref\tools\hpr\utils\FileUpdate;
 
+const LOCALHOST = "127.0.0.1";
+
 final class Main extends PluginBase{
     private ?DirectoryWatchTask $watcher = null;
 
@@ -59,8 +61,13 @@ final class Main extends PluginBase{
             $server->shutdown();
 
             // Just try reconnect players to server
+            $ip = Internet::getIP();
+            $port = $server->getPort();
             foreach($server->getOnlinePlayers() as $player){
-                $player->transfer(Internet::getIP(), $server->getPort());
+                $player->transfer(
+                    address: $player->getNetworkSession()->getIp() === LOCALHOST ? LOCALHOST : $ip,
+                    port: $port
+                );
             }
         });
         $server->getAsyncPool()->submitTask($this->watcher);
