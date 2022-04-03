@@ -27,6 +27,7 @@ declare(strict_types=1);
 namespace ref\tools\hpr;
 
 use pocketmine\plugin\PluginBase;
+use pocketmine\utils\Internet;
 use ref\tools\hpr\task\DirectoryWatchTask;
 use ref\tools\hpr\utils\FileUpdate;
 
@@ -56,6 +57,11 @@ final class Main extends PluginBase{
                 }
             }
             $server->shutdown();
+
+            // Just try reconnect players to server
+            foreach($server->getOnlinePlayers() as $player){
+                $player->transfer(Internet::getIP(), $server->getPort());
+            }
         });
         $server->getAsyncPool()->submitTask($this->watcher);
     }
