@@ -30,10 +30,13 @@ use Webmozart\PathUtil\Path;
 
 use function file_exists;
 use function hash_file;
+use function in_array;
 use function is_dir;
 use function is_file;
 use function scandir;
-use function str_contains;
+use function str_ends_with;
+use function str_starts_with;
+use function var_dump;
 
 final class FileHash{
     private function __construct(){
@@ -49,15 +52,19 @@ final class FileHash{
             return [];
         }
 
-        foreach(array_diff(scandir($dir), [".", ".."]) as $innerPath){
+        foreach(scandir($dir) as $innerPath){
+            if(
+                in_array($innerPath, [".", ".."]) || //skip dot inodes
+                str_starts_with($innerPath, ".") || //skip hidden files
+                str_ends_with($innerPath, "~")  //skip backup files
+            ){
+                continue;
+            }
+
             $fullPath = Path::join($dir, $innerPath);
             if(is_file($fullPath)){
                 $result[$fullPath] = self::file($fullPath);
-            }elseif(is_dir($fullPath)){
-                if(str_contains($fullPath, "/.")){ //Skip directory names starting with '.'
-                    continue;
-                }
-
+            }else{
                 $result = self::dir($fullPath, $result);
             }
         }
