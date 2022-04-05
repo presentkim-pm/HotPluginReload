@@ -24,58 +24,32 @@
 
 declare(strict_types=1);
 
-namespace ref\tools\hpr\task;
+namespace ref\tools\hpr\thread;
 
-use Closure;
-use http\Exception\InvalidArgumentException;
+use pocketmine\snooze\SleeperNotifier;
+use pocketmine\thread\Thread;
 use ref\tools\hpr\utils\FileHash;
 use ref\tools\hpr\utils\FileUpdate;
-use pocketmine\scheduler\AsyncTask;
-use pocketmine\utils\Utils;
-use Webmozart\PathUtil\Path;
 
 use function count;
-use function file_exists;
-use function is_dir;
-use function usleep;
+use function igbinary_serialize;
 
-final class DirectoryWatchTask extends AsyncTask{
-    private const DEFAULT_INTERVAL = 500000; // 0.5s
+final class DirectoryWatchThread extends Thread{
+    private string $serializedFiles = "";
+    private bool $isRunning = true;
 
-    /** @var string Watching directory path */
-    private string $path;
-
-    /**
-     * @var Closure $onUpdated
-     * @phpstan-var (Closure(array<string, ModifyType> $updatedFiles) : void) $onUpdated
-     */
-    private Closure $onUpdated;
-
-    /** @var int Directory scan interval [unit: micro seconds] */
-    private int $interval;
-
-    public function __construct(string $path, Closure $onUpdated, int $interval = self::DEFAULT_INTERVAL){
-        $this->path = Path::canonicalize($path);
-        if(!file_exists($this->path) || !is_dir($this->path)){
-            throw new InvalidArgumentException("$path is not a valid path");
-        }
-
-        $this->onUpdated = $onUpdated;
-        Utils::validateCallableSignature(static function(array $updatedFiles) : void{ }, $this->onUpdated);
-
-        $this->interval = $interval;
-        if($this->interval < 1){
-            throw new InvalidArgumentException("Interval must be greater than 0, given $interval");
-        }
+    public function __construct(
+        private string $path,
+        private SleeperNotifier $notifier
+    ){
     }
 
-    /** Start watching of the directory */
-    public function onRun() : void{
+    protected function onRun() : void{
         $originHashes = FileHash::dir($this->path);
 
         /** @var array<string, FileUpdate> $updatedFiles */
         $updatedFiles = [];
-        while(true){
+        while($this->isRunning){
             $currentHashes = FileHash::dir($this->path);
             // Check if a file has been deleted or modified
             foreach($originHashes as $pathname => $hash){
@@ -92,19 +66,24 @@ final class DirectoryWatchTask extends AsyncTask{
                 }
             }
             if(count($updatedFiles) > 0){
-                $this->setResult($updatedFiles);
+                $this->serializedFiles = igbinary_serialize($updatedFiles);
+                $this->notifier->wakeupSleeper();
                 break;
             }
-            if($this->isTerminated() || $this->hasCancelledRun()){
-                break;
-            }
-            usleep($this->interval);
         }
     }
 
-    public function onCompletion() : void{
-        if($this->hasResult()){
-            ($this->onUpdated)($this->getResult());
+    public function stop() : void{
+        if($this->isJoined()){
+            return;
         }
+        $this->synchronized(function() : void{
+            $this->isRunning = false;
+        });
+        $this->quit();
+    }
+
+    public function getSerializedFiles() : string{
+        return $this->serializedFiles;
     }
 }
