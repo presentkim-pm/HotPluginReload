@@ -45,7 +45,7 @@ final class Main extends PluginBase{
         $notifier = new SleeperNotifier();
         $this->thread = new DirectoryWatchThread($server->getPluginPath(), $notifier);
         $this->thread->start(PTHREADS_INHERIT_NONE);
-        $server->getTickSleeper()->addNotifier($notifier, function() use ($server, $notifier) : void{
+        $server->getTickSleeper()->addNotifier($notifier, function() use ($server) : void{
             $updatedFiles = igbinary_unserialize($this->thread->getSerializedFiles());
 
             $this->thread->stop();
@@ -57,7 +57,7 @@ final class Main extends PluginBase{
 
             /**
              * @var string $pathname updated file path
-             * @var string $update file update type
+             * @var FileUpdate $update file update type
              */
             foreach($updatedFiles as $pathname => $update){
                 switch($update){
