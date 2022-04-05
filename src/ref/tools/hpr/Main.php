@@ -43,8 +43,10 @@ final class Main extends PluginBase{
     protected function onEnable() : void{
         $server = $this->getServer();
         $notifier = new SleeperNotifier();
+
         $this->thread = new DirectoryWatchThread($server->getPluginPath(), $notifier);
         $this->thread->start(PTHREADS_INHERIT_NONE);
+
         $server->getTickSleeper()->addNotifier($notifier, function() use ($server) : void{
             $updatedFiles = igbinary_unserialize($this->thread->getSerializedFiles());
 
@@ -54,9 +56,8 @@ final class Main extends PluginBase{
             $logger = $this->getLogger();
             $logger->info("Plugin file changes have been detected...");
 
-
             /**
-             * @var string $pathname updated file path
+             * @var string     $pathname updated file path
              * @var FileUpdate $update file update type
              */
             foreach($updatedFiles as $pathname => $update){
@@ -74,7 +75,7 @@ final class Main extends PluginBase{
             }
             $server->shutdown();
 
-            // Just try reconnect players to server
+            //reconnect players to server
             $ip = Internet::getIP();
             $port = $server->getPort();
             foreach($server->getOnlinePlayers() as $player){

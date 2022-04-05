@@ -35,12 +35,13 @@ use function count;
 use function igbinary_serialize;
 
 final class DirectoryWatchThread extends Thread{
-
     private string $serializedFiles = "";
+    private bool $isRunning = true;
 
-    private bool $running = true;
-
-    public function __construct(private string $path, private SleeperNotifier $notifier){
+    public function __construct(
+        private string $path,
+        private SleeperNotifier $notifier
+    ){
     }
 
     protected function onRun() : void{
@@ -48,7 +49,7 @@ final class DirectoryWatchThread extends Thread{
 
         /** @var array<string, FileUpdate> $updatedFiles */
         $updatedFiles = [];
-        while($this->running){
+        while($this->isRunning){
             $currentHashes = FileHash::dir($this->path);
             // Check if a file has been deleted or modified
             foreach($originHashes as $pathname => $hash){
@@ -77,7 +78,7 @@ final class DirectoryWatchThread extends Thread{
             return;
         }
         $this->synchronized(function() : void{
-            $this->running = false;
+            $this->isRunning = false;
         });
         $this->quit();
     }
