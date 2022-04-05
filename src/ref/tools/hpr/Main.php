@@ -27,23 +27,37 @@ declare(strict_types=1);
 namespace ref\tools\hpr;
 
 use pocketmine\plugin\PluginBase;
+use pocketmine\snooze\SleeperNotifier;
 use pocketmine\utils\Internet;
-use ref\tools\hpr\task\DirectoryWatchTask;
+use ref\tools\hpr\thread\DirectoryWatchThread;
 use ref\tools\hpr\utils\FileUpdate;
+
+use function igbinary_unserialize;
 
 const LOCALHOST = "127.0.0.1";
 
 final class Main extends PluginBase{
-    private ?DirectoryWatchTask $watcher = null;
+
+    private DirectoryWatchThread $thread;
 
     protected function onEnable() : void{
         $server = $this->getServer();
-        $this->watcher = new DirectoryWatchTask($server->getPluginPath(), function(array $updatedFiles) use ($server) : void{
+        $notifier = new SleeperNotifier();
+        $this->thread = new DirectoryWatchThread($server->getPluginPath(), $notifier);
+        $this->thread->start(PTHREADS_INHERIT_NONE);
+        $server->getTickSleeper()->addNotifier($notifier, function() use ($server) : void{
+            $updatedFiles = igbinary_unserialize($this->thread->getSerializedFiles());
+
+            $this->thread->stop();
+            unset($this->thread);
+
             $logger = $this->getLogger();
             $logger->info("Plugin file changes was detected...");
+
+
             /**
-             * @var string     $pathname updated file path
-             * @var FileUpdate $update file update type
+             * @var string $pathname updated file path
+             * @var string $update file update type
              */
             foreach($updatedFiles as $pathname => $update){
                 switch($update){
@@ -70,10 +84,11 @@ final class Main extends PluginBase{
                 );
             }
         });
-        $server->getAsyncPool()->submitTask($this->watcher);
     }
 
     protected function onDisable() : void{
-        $this->watcher?->cancelRun();
+        if(isset($this->thread)){
+            $this->thread->stop();
+        }
     }
 }
