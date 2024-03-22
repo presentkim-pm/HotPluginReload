@@ -26,28 +26,8 @@ declare(strict_types=1);
 
 namespace ref\tools\hpr\utils;
 
-use pocketmine\utils\RegistryTrait;
-
-/**
- * @method static FileUpdate MODIFIED()
- * @method static FileUpdate DELETED()
- * @method static FileUpdate CREATED()
- */
-final class FileUpdate{
-    use RegistryTrait;
-
-    protected static function setup() : void{
-        self::register(new self("modified"));
-        self::register(new self("deleted"));
-        self::register(new self("created"));
-    }
-
-    private static function register(self $fileUpdate) : void{
-        self::_registryRegister($fileUpdate->name, $fileUpdate);
-    }
-
-    private function __construct(
-        private string $name
-    ){
-    }
+enum FileUpdate{
+    case MODIFIED;
+    case DELETED;
+    case CREATED;
 }

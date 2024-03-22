@@ -26,7 +26,7 @@ declare(strict_types=1);
 
 namespace ref\tools\hpr\utils;
 
-use Webmozart\PathUtil\Path;
+use Symfony\Component\Filesystem\Path;
 
 use function file_exists;
 use function hash_file;
@@ -36,7 +36,6 @@ use function is_file;
 use function scandir;
 use function str_ends_with;
 use function str_starts_with;
-use function var_dump;
 
 final class FileHash{
     private function __construct(){
@@ -44,7 +43,14 @@ final class FileHash{
     }
 
     public static function file(string $filePath) : string{
-        return is_file($filePath) ? hash_file("sha256", $filePath) : "";
+        if(!file_exists($filePath) || !is_file($filePath)){
+            return "";
+        }
+        try{
+            return hash_file("sha256", $filePath);
+        }catch(\Throwable){
+            return "";
+        }
     }
 
     public static function dir(string $dir, array $result = []) : array{

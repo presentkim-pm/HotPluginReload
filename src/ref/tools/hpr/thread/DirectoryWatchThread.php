@@ -26,13 +26,15 @@ declare(strict_types=1);
 
 namespace ref\tools\hpr\thread;
 
-use pocketmine\snooze\SleeperNotifier;
+use pocketmine\snooze\SleeperHandlerEntry;
 use pocketmine\thread\Thread;
 use ref\tools\hpr\utils\FileHash;
 use ref\tools\hpr\utils\FileUpdate;
 
 use function count;
 use function igbinary_serialize;
+use function microtime;
+use function time_sleep_until;
 
 final class DirectoryWatchThread extends Thread{
     private string $serializedFiles = "";
@@ -40,9 +42,8 @@ final class DirectoryWatchThread extends Thread{
 
     public function __construct(
         private string $path,
-        private SleeperNotifier $notifier
-    ){
-    }
+        private SleeperHandlerEntry $sleeperHandlerEntry,
+    ){}
 
     protected function onRun() : void{
         $originHashes = FileHash::dir($this->path);
@@ -54,26 +55,29 @@ final class DirectoryWatchThread extends Thread{
             // Check if a file has been deleted or modified
             foreach($originHashes as $pathname => $hash){
                 if(!isset($currentHashes[$pathname])){
-                    $updatedFiles[$pathname] = FileUpdate::DELETED();
+                    $updatedFiles[$pathname] = FileUpdate::DELETED;
                 }elseif($currentHashes[$pathname] !== $hash){
-                    $updatedFiles[$pathname] = FileUpdate::MODIFIED();
+                    $updatedFiles[$pathname] = FileUpdate::MODIFIED;
                 }
             }
             // Check if a new file has been created
             foreach($currentHashes as $pathname => $time){
                 if(!isset($originHashes[$pathname])){
-                    $updatedFiles[$pathname] = FileUpdate::CREATED();
+                    $updatedFiles[$pathname] = FileUpdate::CREATED;
                 }
             }
             if(count($updatedFiles) > 0){
                 $this->serializedFiles = igbinary_serialize($updatedFiles);
-                $this->notifier->wakeupSleeper();
+
+                $notifier = $this->sleeperHandlerEntry->createNotifier();
+                $notifier->wakeupSleeper();
                 break;
             }
+            time_sleep_until(microtime(true) + 0.5);
         }
     }
 
-    public function stop() : void{
+    public function shutdown() : void{
         if($this->isJoined()){
             return;
         }

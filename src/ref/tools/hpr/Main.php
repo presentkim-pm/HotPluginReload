@@ -27,7 +27,6 @@ declare(strict_types=1);
 namespace ref\tools\hpr;
 
 use pocketmine\plugin\PluginBase;
-use pocketmine\snooze\SleeperNotifier;
 use pocketmine\utils\Internet;
 use ref\tools\hpr\thread\DirectoryWatchThread;
 use ref\tools\hpr\utils\FileUpdate;
@@ -40,21 +39,19 @@ final class Main extends PluginBase{
 
     private DirectoryWatchThread $thread;
 
+    private int $notifierId;
+
     protected function onEnable() : void{
         $server = $this->getServer();
-        $notifier = new SleeperNotifier();
 
-        $this->thread = new DirectoryWatchThread($server->getPluginPath(), $notifier);
-        $this->thread->start(PTHREADS_INHERIT_NONE);
-
-        $server->getTickSleeper()->addNotifier($notifier, function() use ($server) : void{
+        $sleeperHandlerEntry = $server->getTickSleeper()->addNotifier(function() use ($server) : void{
             $updatedFiles = igbinary_unserialize($this->thread->getSerializedFiles());
 
-            $this->thread->stop();
+            $this->thread->shutdown();
             unset($this->thread);
 
             $logger = $this->getLogger();
-            $logger->info("Plugin file changes have been detected...");
+            $logger->notice("Plugin file changes have been detected...");
 
             /**
              * @var string     $pathname updated file path
@@ -62,13 +59,13 @@ final class Main extends PluginBase{
              */
             foreach($updatedFiles as $pathname => $update){
                 switch($update){
-                    case FileUpdate::CREATED():
+                    case FileUpdate::CREATED:
                         $logger->debug("+ created: $pathname");
                         break;
-                    case FileUpdate::MODIFIED():
+                    case FileUpdate::MODIFIED:
                         $logger->debug("= modified: $pathname");
                         break;
-                    case FileUpdate::DELETED():
+                    case FileUpdate::DELETED:
                         $logger->debug("- deleted: $pathname");
                         break;
                 }
@@ -85,11 +82,18 @@ final class Main extends PluginBase{
                 );
             }
         });
+
+        $this->notifierId = $sleeperHandlerEntry->getNotifierId();
+        $this->thread = new DirectoryWatchThread($server->getPluginPath(), $sleeperHandlerEntry);
+        $this->thread->start();
     }
 
     protected function onDisable() : void{
         if(isset($this->thread)){
-            $this->thread->stop();
+            $this->thread->shutdown();
+        }
+        if($this->notifierId !== -1){
+            $this->getServer()->getTickSleeper()->removeNotifier($this->notifierId);
         }
     }
 }
