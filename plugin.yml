@@ -1,6 +1,6 @@
 ---
 name: HotPluginReload
-main: ref\tools\hpr\Main
+main: kim\present\hpr\Main
 version: 0.0.2
 api: [ 5.0.0 ]
 author: PresentKim

@@ -11,8 +11,8 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * @author  ref-team
- * @link    https://github.com/refteams
+ * @author       ref-team
+ * @link         https://github.com/refteams
  *
  *  &   ／l、
  *    （ﾟ､ ｡ ７
@@ -24,10 +24,10 @@
 
 declare(strict_types=1);
 
-namespace ref\tools\hpr\utils;
+namespace kim\present\hpr\utils;
 
 enum FileUpdate{
-    case MODIFIED;
-    case DELETED;
-    case CREATED;
+	case MODIFIED;
+	case DELETED;
+	case CREATED;
 }
