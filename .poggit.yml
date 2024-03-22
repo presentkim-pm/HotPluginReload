@@ -2,6 +2,6 @@
 branches:
 - main
 projects:
-  refHotPluginReload:
+  HotPluginReload:
     path: ""
 ...
