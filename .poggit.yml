@@ -3,5 +3,6 @@ branches:
 - main
 projects:
   HotPluginReload:
+    icon: "assets/icon.png"
     path: ""
 ...
