@@ -1,7 +1,7 @@
 ---
 name: HotPluginReload
 main: kim\present\hpr\Main
-version: 0.0.2
+version: 1.0.0
 api: [ 5.0.0 ]
 author: PresentKim
 description: Automatically server shutdown the server when the plugins file is changed.
