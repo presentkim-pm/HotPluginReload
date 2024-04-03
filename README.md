@@ -31,6 +31,7 @@ At the very least, it was too much of a bother for me.
 
 Just use this plugin to automatically shutdown the server when the plugin file changes!  
 It also supports reconnecting for players!
+
 ##
 
 -----

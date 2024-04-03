@@ -38,44 +38,45 @@ use function str_ends_with;
 use function str_starts_with;
 
 final class FileHash{
-	private function __construct(){
-		//NOOP
-	}
 
-	public static function file(string $filePath) : string{
-		if(!file_exists($filePath) || !is_file($filePath)){
-			return "";
-		}
-		try{
-			return hash_file("sha256", $filePath);
-		}catch(\Throwable){
-			return "";
-		}
-	}
+    private function __construct(){
+        //NOOP
+    }
 
-	public static function dir(string $dir, array $result = []) : array{
-		if(!file_exists($dir) || !is_dir($dir)){
-			return [];
-		}
+    public static function file(string $filePath) : string{
+        if(!file_exists($filePath) || !is_file($filePath)){
+            return "";
+        }
+        try{
+            return hash_file("sha256", $filePath);
+        }catch(\Throwable){
+            return "";
+        }
+    }
 
-		foreach(scandir($dir) as $innerPath){
-			if(
-				in_array($innerPath, [".", ".."])
-				|| //skip dot inodes
-				str_starts_with($innerPath, ".")
-				|| //skip hidden files
-				str_ends_with($innerPath, "~")  //skip backup files
-			){
-				continue;
-			}
+    public static function dir(string $dir, array $result = []) : array{
+        if(!file_exists($dir) || !is_dir($dir)){
+            return [];
+        }
 
-			$fullPath = Path::join($dir, $innerPath);
-			if(is_file($fullPath)){
-				$result[$fullPath] = self::file($fullPath);
-			}else{
-				$result = self::dir($fullPath, $result);
-			}
-		}
-		return $result;
-	}
+        foreach(scandir($dir) as $innerPath){
+            if(
+                in_array($innerPath, [".", ".."])
+                || //skip dot inodes
+                str_starts_with($innerPath, ".")
+                || //skip hidden files
+                str_ends_with($innerPath, "~")  //skip backup files
+            ){
+                continue;
+            }
+
+            $fullPath = Path::join($dir, $innerPath);
+            if(is_file($fullPath)){
+                $result[$fullPath] = self::file($fullPath);
+            }else{
+                $result = self::dir($fullPath, $result);
+            }
+        }
+        return $result;
+    }
 }

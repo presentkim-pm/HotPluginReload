@@ -37,63 +37,64 @@ const LOCALHOST = "127.0.0.1";
 
 final class Main extends PluginBase{
 
-	private DirectoryWatchThread $thread;
 
-	private int $notifierId;
+    private DirectoryWatchThread $thread;
 
-	protected function onEnable() : void{
-		$server = $this->getServer();
+    private int $notifierId;
 
-		$sleeperHandlerEntry = $server->getTickSleeper()->addNotifier(function() use ($server) : void{
-			$updatedFiles = igbinary_unserialize($this->thread->getSerializedFiles());
+    protected function onEnable() : void{
+        $server = $this->getServer();
 
-			$this->thread->shutdown();
-			unset($this->thread);
+        $sleeperHandlerEntry = $server->getTickSleeper()->addNotifier(function() use ($server) : void{
+            $updatedFiles = igbinary_unserialize($this->thread->getSerializedFiles());
 
-			$logger = $this->getLogger();
-			$logger->notice("Plugin file changes have been detected...");
+            $this->thread->shutdown();
+            unset($this->thread);
 
-			/**
-			 * @var string     $pathname updated file path
-			 * @var FileUpdate $update   file update type
-			 */
-			foreach($updatedFiles as $pathname => $update){
-				switch($update){
-					case FileUpdate::CREATED:
-						$logger->debug("+ created: $pathname");
-						break;
-					case FileUpdate::MODIFIED:
-						$logger->debug("= modified: $pathname");
-						break;
-					case FileUpdate::DELETED:
-						$logger->debug("- deleted: $pathname");
-						break;
-				}
-			}
-			$server->shutdown();
+            $logger = $this->getLogger();
+            $logger->notice("Plugin file changes have been detected...");
 
-			//reconnect players to server
-			$ip = Internet::getIP();
-			$port = $server->getPort();
-			foreach($server->getOnlinePlayers() as $player){
-				$player->transfer(
-					address: $player->getNetworkSession()->getIp() === LOCALHOST ? LOCALHOST : $ip,
-					port: $port
-				);
-			}
-		});
+            /**
+             * @var string     $pathname updated file path
+             * @var FileUpdate $update   file update type
+             */
+            foreach($updatedFiles as $pathname => $update){
+                switch($update){
+                    case FileUpdate::CREATED:
+                        $logger->debug("+ created: $pathname");
+                        break;
+                    case FileUpdate::MODIFIED:
+                        $logger->debug("= modified: $pathname");
+                        break;
+                    case FileUpdate::DELETED:
+                        $logger->debug("- deleted: $pathname");
+                        break;
+                }
+            }
+            $server->shutdown();
 
-		$this->notifierId = $sleeperHandlerEntry->getNotifierId();
-		$this->thread = new DirectoryWatchThread($server->getPluginPath(), $sleeperHandlerEntry);
-		$this->thread->start();
-	}
+            //reconnect players to server
+            $ip = Internet::getIP();
+            $port = $server->getPort();
+            foreach($server->getOnlinePlayers() as $player){
+                $player->transfer(
+                    address: $player->getNetworkSession()->getIp() === LOCALHOST ? LOCALHOST : $ip,
+                    port: $port
+                );
+            }
+        });
 
-	protected function onDisable() : void{
-		if(isset($this->thread)){
-			$this->thread->shutdown();
-		}
-		if($this->notifierId !== -1){
-			$this->getServer()->getTickSleeper()->removeNotifier($this->notifierId);
-		}
-	}
+        $this->notifierId = $sleeperHandlerEntry->getNotifierId();
+        $this->thread = new DirectoryWatchThread($server->getPluginPath(), $sleeperHandlerEntry);
+        $this->thread->start();
+    }
+
+    protected function onDisable() : void{
+        if(isset($this->thread)){
+            $this->thread->shutdown();
+        }
+        if($this->notifierId !== -1){
+            $this->getServer()->getTickSleeper()->removeNotifier($this->notifierId);
+        }
+    }
 }

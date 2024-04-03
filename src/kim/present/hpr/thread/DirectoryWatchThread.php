@@ -37,53 +37,54 @@ use function microtime;
 use function time_sleep_until;
 
 final class DirectoryWatchThread extends Thread{
-	private string $serializedFiles = "";
-	private bool $isRunning = true;
 
-	public function __construct(
-		private string $path,
-		private SleeperHandlerEntry $sleeperHandlerEntry,
-	){}
+    private string $serializedFiles = "";
+    private bool $isRunning = true;
 
-	protected function onRun() : void{
-		$originHashes = FileHash::dir($this->path);
+    public function __construct(
+        private string $path,
+        private SleeperHandlerEntry $sleeperHandlerEntry,
+    ){}
 
-		/** @var array<string, FileUpdate> $updatedFiles */
-		$updatedFiles = [];
-		while($this->isRunning){
-			$currentHashes = FileHash::dir($this->path);
-			// Check if a file has been deleted or modified
-			foreach($originHashes as $pathname => $hash){
-				if(!isset($currentHashes[$pathname])){
-					$updatedFiles[$pathname] = FileUpdate::DELETED;
-				}elseif($currentHashes[$pathname] !== $hash){
-					$updatedFiles[$pathname] = FileUpdate::MODIFIED;
-				}
-			}
-			// Check if a new file has been created
-			foreach($currentHashes as $pathname => $time){
-				if(!isset($originHashes[$pathname])){
-					$updatedFiles[$pathname] = FileUpdate::CREATED;
-				}
-			}
-			if(count($updatedFiles) > 0){
-				$this->serializedFiles = igbinary_serialize($updatedFiles);
+    protected function onRun() : void{
+        $originHashes = FileHash::dir($this->path);
 
-				$notifier = $this->sleeperHandlerEntry->createNotifier();
-				$notifier->wakeupSleeper();
-				break;
-			}
-			time_sleep_until(microtime(true) + 0.5);
-		}
-	}
+        /** @var array<string, FileUpdate> $updatedFiles */
+        $updatedFiles = [];
+        while($this->isRunning){
+            $currentHashes = FileHash::dir($this->path);
+            // Check if a file has been deleted or modified
+            foreach($originHashes as $pathname => $hash){
+                if(!isset($currentHashes[$pathname])){
+                    $updatedFiles[$pathname] = FileUpdate::DELETED;
+                }elseif($currentHashes[$pathname] !== $hash){
+                    $updatedFiles[$pathname] = FileUpdate::MODIFIED;
+                }
+            }
+            // Check if a new file has been created
+            foreach($currentHashes as $pathname => $time){
+                if(!isset($originHashes[$pathname])){
+                    $updatedFiles[$pathname] = FileUpdate::CREATED;
+                }
+            }
+            if(count($updatedFiles) > 0){
+                $this->serializedFiles = igbinary_serialize($updatedFiles);
 
-	public function shutdown() : void{
-		$this->synchronized(function() : void{
-			$this->isRunning = false;
-		});
-	}
+                $notifier = $this->sleeperHandlerEntry->createNotifier();
+                $notifier->wakeupSleeper();
+                break;
+            }
+            time_sleep_until(microtime(true) + 0.5);
+        }
+    }
 
-	public function getSerializedFiles() : string{
-		return $this->serializedFiles;
-	}
+    public function shutdown() : void{
+        $this->synchronized(function() : void{
+            $this->isRunning = false;
+        });
+    }
+
+    public function getSerializedFiles() : string{
+        return $this->serializedFiles;
+    }
 }

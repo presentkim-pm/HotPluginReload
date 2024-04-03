@@ -27,7 +27,7 @@ declare(strict_types=1);
 namespace kim\present\hpr\utils;
 
 enum FileUpdate{
-	case MODIFIED;
-	case DELETED;
-	case CREATED;
+    case MODIFIED;
+    case DELETED;
+    case CREATED;
 }
